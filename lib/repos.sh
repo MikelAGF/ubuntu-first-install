@@ -104,6 +104,20 @@ setup_master_pdf_editor_repo() {
     log_info "Repo de Master PDF Editor configurado"
 }
 
+setup_anydesk_repo() {
+    log_subsection "AnyDesk"
+    if [[ -f /etc/apt/sources.list.d/anydesk-stable.list ]]; then
+        log_info "Repo de AnyDesk ya configurado"
+        return 0
+    fi
+    sudo mkdir -p /etc/apt/keyrings
+    sudo curl -fsSL https://keys.anydesk.com/repos/DEB-GPG-KEY -o /etc/apt/keyrings/keys.anydesk.com.asc
+    sudo chmod a+r /etc/apt/keyrings/keys.anydesk.com.asc
+    echo "deb [signed-by=/etc/apt/keyrings/keys.anydesk.com.asc] https://deb.anydesk.com all main" \
+        | sudo tee /etc/apt/sources.list.d/anydesk-stable.list > /dev/null
+    log_info "Repo de AnyDesk anadido"
+}
+
 # -----------------------------------------------------------------------------
 # Funcion principal: configurar todos los repos
 # -----------------------------------------------------------------------------
@@ -118,6 +132,7 @@ setup_all_repos() {
         log_info "  - Azure CLI"
         log_info "  - Google Cloud SDK"
         log_info "  - Master PDF Editor"
+        log_info "  - AnyDesk"
         return 0
     fi
 
@@ -129,6 +144,7 @@ setup_all_repos() {
     setup_azure_cli_repo
     setup_gcloud_sdk_repo
     setup_master_pdf_editor_repo
+    setup_anydesk_repo
 
     log_info "Actualizando indices de paquetes..."
     sudo apt-get update || true

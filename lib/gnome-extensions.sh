@@ -157,5 +157,30 @@ setup_all_gnome_extensions() {
     enable_user_extensions
     enable_system_extensions
 
-    log_warn "Puede ser necesario cerrar sesion y volver a entrar para que las extensiones se activen completamente"
+    # If extensions are on disk but not visible, the shell has not rescanned yet.
+    # On X11 we can restart the shell so it rescans; then retry enable.
+    local need_retry="false"
+    for ext in "${USER_EXTENSIONS[@]}" "${SYSTEM_EXTENSIONS[@]}"; do
+        if extension_on_disk "$ext" && ! extension_visible_to_shell "$ext"; then
+            need_retry="true"
+            break
+        fi
+    done
+    if [[ "$need_retry" == "true" ]] && [[ "${XDG_SESSION_TYPE:-}" == "x11" ]]; then
+        log_info "Reiniciando GNOME Shell para que detecte las extensiones instaladas (X11)..."
+        killall -HUP gnome-shell 2>/dev/null || true
+        sleep 10
+        log_subsection "Habilitando extensiones (segundo intento tras reinicio del shell)"
+        for ext in "${USER_EXTENSIONS[@]}" "${SYSTEM_EXTENSIONS[@]}"; do
+            extension_on_disk "$ext" || continue
+            extension_visible_to_shell "$ext" || continue
+            log_info "Habilitando: $ext"
+            gnome-extensions enable "$ext" 2>&1 || log_warn "No se pudo habilitar $ext"
+        done
+    fi
+    if [[ "$need_retry" == "true" ]] && [[ "${XDG_SESSION_TYPE:-}" != "x11" ]]; then
+        log_warn "En Wayland: cierra sesion y vuelve a entrar, luego ejecuta: ./install.sh gnome (para habilitar las extensiones)"
+    else
+        log_warn "Puede ser necesario cerrar sesion y volver a entrar para que las extensiones se activen completamente"
+    fi
 }

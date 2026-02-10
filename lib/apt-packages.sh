@@ -66,18 +66,26 @@ install_media() {
 
 install_virtualization() {
     log_subsection "Virtualizacion"
-    # Remove stale crash report so DKMS postinst does not fail with "File exists"
     sudo rm -f /var/crash/virtualbox-dkms*.crash 2>/dev/null || true
     log_info "Instalando linux-headers para DKMS..."
     if ! all_packages_installed linux-headers-"$(uname -r)" 2>/dev/null; then
         sudo apt-get install -y linux-headers-"$(uname -r)" 2>/dev/null \
             || sudo apt-get install -y linux-headers-generic 2>/dev/null || true
     fi
-    if ! apt_install virtualbox virtualbox-dkms; then
-        sudo dpkg --configure -a 2>/dev/null || true
-        log_warn "VirtualBox no se pudo instalar (p. ej. DKMS o kernel). Puedes instalarlo manualmente mas tarde con: sudo apt install virtualbox virtualbox-dkms"
+    log_info "Instalando VirtualBox..."
+    if sudo apt-get install -y virtualbox virtualbox-dkms 2>&1; then
         return 0
     fi
+    sudo dpkg --configure -a 2>/dev/null || true
+    if all_packages_installed virtualbox virtualbox-dkms 2>/dev/null; then
+        log_info "VirtualBox ya instalado (dpkg recuperado)"
+        return 0
+    fi
+    # Purge half-installed packages so dpkg is clean and future apt runs don't retry
+    log_info "Limpiando paquetes de VirtualBox no configurados..."
+    sudo apt purge -y virtualbox-dkms virtualbox virtualbox-qt 2>/dev/null || true
+    log_warn "VirtualBox no se pudo instalar (kernel 6.17 no soportado por esta version). Para usar VirtualBox: instala desde https://www.virtualbox.org/wiki/Downloads o espera a que Ubuntu actualice el paquete."
+    return 0
 }
 
 install_docker() {
@@ -109,7 +117,7 @@ install_cloud_tools() {
 
 install_remote_tools() {
     log_subsection "Herramientas remotas"
-    apt_install_optional anydesk
+    apt_install anydesk
 }
 
 install_fonts() {
@@ -156,9 +164,11 @@ install_all_apt_packages() {
     fi
     # Ensure crash file is gone before any apt run (e.g. when running only --section apt)
     sudo rm -f /var/crash/virtualbox-dkms*.crash 2>/dev/null || true
-    # Refresh indices so packages from fixed repos are available
+    # Refresh indices and upgrade existing packages
     log_info "Actualizando indices de paquetes (apt-get update)..."
     sudo apt-get update -qq 2>/dev/null || true
+    log_info "Actualizando paquetes instalados (apt-get upgrade)..."
+    sudo apt-get upgrade -y -qq 2>/dev/null || true
 
     install_core_utilities
     install_development_tools
