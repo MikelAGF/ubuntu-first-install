@@ -9,8 +9,9 @@ setup_google_chrome_repo() {
         log_info "Repo de Google Chrome ya configurado"
         return 0
     fi
+    sudo rm -f /etc/apt/trusted.gpg.d/google-chrome.gpg
     wget -q -O - https://dl.google.com/linux/linux_signing_key.pub \
-        | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/google-chrome.gpg
+        | sudo gpg --batch --yes --dearmor -o /etc/apt/trusted.gpg.d/google-chrome.gpg
     echo "deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" \
         | sudo tee /etc/apt/sources.list.d/google-chrome.list > /dev/null
     log_info "Repo de Google Chrome anadido"
@@ -22,8 +23,9 @@ setup_sublime_text_repo() {
         log_info "Repo de Sublime Text ya configurado"
         return 0
     fi
+    sudo rm -f /usr/share/keyrings/sublimehq-archive-keyring.gpg
     wget -qO - https://download.sublimetext.com/sublimehq-pub.gpg \
-        | sudo gpg --dearmor -o /usr/share/keyrings/sublimehq-archive-keyring.gpg
+        | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/sublimehq-archive-keyring.gpg
     echo "deb [signed-by=/usr/share/keyrings/sublimehq-archive-keyring.gpg] https://download.sublimetext.com/ apt/stable/" \
         | sudo tee /etc/apt/sources.list.d/sublime-text.list > /dev/null
     log_info "Repo de Sublime Text anadido"
@@ -61,13 +63,10 @@ setup_graphics_drivers_ppa() {
 
 setup_azure_cli_repo() {
     log_subsection "Azure CLI"
-    if [[ -f /etc/apt/sources.list.d/azure-cli.sources ]] || [[ -f /etc/apt/sources.list.d/azure-cli.list ]]; then
-        log_info "Repo de Azure CLI ya configurado"
-        return 0
-    fi
     sudo mkdir -p /etc/apt/keyrings
+    sudo rm -f /etc/apt/keyrings/microsoft.gpg
     curl -sLS https://packages.microsoft.com/keys/microsoft.asc \
-        | sudo gpg --dearmor -o /etc/apt/keyrings/microsoft.gpg
+        | sudo gpg --batch --yes --dearmor -o /etc/apt/keyrings/microsoft.gpg
     sudo chmod go+r /etc/apt/keyrings/microsoft.gpg
 
     AZ_DIST=$(lsb_release -cs)
@@ -78,34 +77,31 @@ Components: main
 Architectures: amd64
 Signed-By: /etc/apt/keyrings/microsoft.gpg" \
         | sudo tee /etc/apt/sources.list.d/azure-cli.sources > /dev/null
-    log_info "Repo de Azure CLI anadido"
+    log_info "Repo de Azure CLI configurado"
 }
 
 setup_gcloud_sdk_repo() {
     log_subsection "Google Cloud SDK"
-    if [[ -f /etc/apt/sources.list.d/google-cloud-sdk.list ]]; then
-        log_info "Repo de Google Cloud SDK ya configurado"
-        return 0
-    fi
+    sudo mkdir -p /usr/share/keyrings
+    sudo rm -f /usr/share/keyrings/cloud.google.gpg
     curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg \
-        | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+        | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/cloud.google.gpg
+    sudo chmod 644 /usr/share/keyrings/cloud.google.gpg 2>/dev/null || true
     echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" \
         | sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list > /dev/null
-    log_info "Repo de Google Cloud SDK anadido"
+    log_info "Repo de Google Cloud SDK configurado"
 }
 
 setup_master_pdf_editor_repo() {
     log_subsection "Master PDF Editor"
-    if [[ -f /etc/apt/sources.list.d/master-pdf-editor.list ]]; then
-        log_info "Repo de Master PDF Editor ya configurado"
-        return 0
-    fi
     sudo mkdir -p /etc/apt/keyrings
-    wget -q -O - https://code-industry.net/public/master-pdf-editor.gpg.key \
-        | sudo gpg --dearmor -o /etc/apt/keyrings/master-pdf-editor.gpg
-    echo "deb [signed-by=/etc/apt/keyrings/master-pdf-editor.gpg arch=amd64] http://repo.code-industry.net/deb stable main" \
+    sudo rm -f /etc/apt/keyrings/pubmpekey.gpg
+    wget -q -O - http://repo.code-industry.net/deb/pubmpekey.asc \
+        | sudo gpg --batch --yes --dearmor -o /etc/apt/keyrings/pubmpekey.gpg 2>/dev/null
+    sudo chmod 644 /etc/apt/keyrings/pubmpekey.gpg 2>/dev/null || true
+    echo "deb [signed-by=/etc/apt/keyrings/pubmpekey.gpg arch=$(dpkg --print-architecture)] http://repo.code-industry.net/deb stable main" \
         | sudo tee /etc/apt/sources.list.d/master-pdf-editor.list > /dev/null
-    log_info "Repo de Master PDF Editor anadido"
+    log_info "Repo de Master PDF Editor configurado"
 }
 
 # -----------------------------------------------------------------------------
@@ -135,6 +131,6 @@ setup_all_repos() {
     setup_master_pdf_editor_repo
 
     log_info "Actualizando indices de paquetes..."
-    sudo apt-get update
+    sudo apt-get update || true
     log_info "Todos los repos configurados"
 }

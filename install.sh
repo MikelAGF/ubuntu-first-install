@@ -34,6 +34,7 @@ source "${SCRIPT_DIR}/lib/appimages.sh"
 source "${SCRIPT_DIR}/lib/system-monitor.sh"
 source "${SCRIPT_DIR}/lib/gnome-extensions.sh"
 source "${SCRIPT_DIR}/lib/grub-theme.sh"
+source "${SCRIPT_DIR}/lib/dconf-settings.sh"
 source "${SCRIPT_DIR}/lib/post-config.sh"
 
 # -----------------------------------------------------------------------------
@@ -50,6 +51,7 @@ SECTIONS=(
     [appimages]="setup_all_appimages"
     [system-monitor]="setup_system_monitor"
     [gnome]="setup_all_gnome_extensions"
+    [gnome-settings]="run_dconf_restore"
     [grub]="setup_grub"
     [post-config]="run_post_config"
 )
@@ -65,6 +67,7 @@ SECTION_ORDER=(
     appimages
     system-monitor
     gnome
+    gnome-settings
     grub
     post-config
 )
@@ -79,6 +82,7 @@ SECTION_DESCRIPTIONS=(
     "appimages:LM Studio AppImage"
     "system-monitor:SystemMonitor.sh + .desktop file"
     "gnome:Extensiones GNOME (Caffeine, Dash to Dock, Vitals, etc.)"
+    "gnome-settings:Restaurar Settings GNOME (dconf: keybindings, tema, teclado)"
     "grub:Tema GRUB Tela + configuracion"
     "post-config:Grupos (docker), servicios, Git LFS"
 )
@@ -92,6 +96,7 @@ show_help() {
     echo "Uso:"
     echo "  ./install.sh                          Ejecutar todo"
     echo "  ./install.sh --section <nombre>       Ejecutar solo una seccion"
+    echo "  ./install.sh <nombre>                 Atajo: igual que --section (ej. system-monitor)"
     echo "  ./install.sh --section sec1,sec2      Ejecutar varias secciones"
     echo "  ./install.sh --list                   Listar secciones"
     echo "  ./install.sh --dry-run                Ver que haria sin ejecutar"
@@ -139,12 +144,48 @@ parse_args() {
                 shift 2
                 ;;
             *)
-                log_error "Argumento desconocido: $1"
-                show_help
-                exit 1
+                # Allow single section name without --section (e.g. ./install.sh system-monitor)
+                if [[ "$1" != -* ]] && [[ -n "${SECTIONS[$1]+x}" ]]; then
+                    SELECTED_SECTIONS=("$1")
+                    shift
+                else
+                    log_error "Argumento desconocido: $1"
+                    show_help
+                    exit 1
+                fi
                 ;;
         esac
     done
+}
+
+# -----------------------------------------------------------------------------
+# Fix system state so the rest of the script can run from a clean state
+# (broken repos, dpkg, VirtualBox crash file). Runs once at start, no manual steps.
+# -----------------------------------------------------------------------------
+fix_system_state_before_install() {
+    log_section "Preparando sistema"
+    # Remove Cursor apt repo (often 403; we install Cursor via .deb)
+    for f in /etc/apt/sources.list.d/cursor.list /etc/apt/sources.list.d/cursor.sources; do
+        if [[ -f "$f" ]]; then
+            sudo rm -f "$f"
+            log_info "Eliminado repo Cursor apt: $f"
+        fi
+    done
+    for f in /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
+        [[ -f "$f" ]] || continue
+        if sudo grep -ql "downloads\.cursor\.com\|cursor\.com/aptrepo" "$f" 2>/dev/null; then
+            sudo rm -f "$f"
+            log_info "Eliminado (contenia repo Cursor): $f"
+        fi
+    done
+    # So virtualbox-dkms postinst does not fail with "Cannot create report: File exists"
+    if sudo rm -f /var/crash/virtualbox-dkms*.crash 2>/dev/null; then
+        log_info "Eliminado archivo de crash anterior de virtualbox-dkms"
+    fi
+    # Try to fix half-configured packages (e.g. from a previous failed run)
+    log_info "Intentando recuperar estado de dpkg..."
+    sudo dpkg --configure -a 2>/dev/null || true
+    log_info "Sistema preparado"
 }
 
 # -----------------------------------------------------------------------------
@@ -204,6 +245,10 @@ main() {
     fi
 
     run_preflight
+
+    if [[ "${DRY_RUN:-false}" != "true" ]]; then
+        fix_system_state_before_install
+    fi
 
     if [[ ${#SELECTED_SECTIONS[@]} -gt 0 ]]; then
         log_info "Ejecutando secciones seleccionadas: ${SELECTED_SECTIONS[*]}"

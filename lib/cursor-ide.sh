@@ -15,9 +15,9 @@ setup_cursor_ide() {
     local script_dir
     script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-    # Instalar dependencia
+    # Instalar dependencia (FUSE para .deb/AppImage)
     log_subsection "Instalando dependencias de Cursor"
-    apt_install libfuse2t64
+    ensure_libfuse2 || true
 
     # Descargar e instalar .deb
     log_subsection "Descargando Cursor IDE (.deb)"

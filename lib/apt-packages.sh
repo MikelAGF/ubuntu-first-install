@@ -53,11 +53,8 @@ install_browser() {
 
 install_productivity() {
     log_subsection "Productividad"
-    apt_install \
-        libreoffice \
-        baobab \
-        sublime-text \
-        master-pdf-editor-5
+    apt_install libreoffice baobab sublime-text
+    apt_install_optional master-pdf-editor-5
 }
 
 install_media() {
@@ -69,9 +66,18 @@ install_media() {
 
 install_virtualization() {
     log_subsection "Virtualizacion"
-    apt_install \
-        virtualbox \
-        virtualbox-dkms
+    # Remove stale crash report so DKMS postinst does not fail with "File exists"
+    sudo rm -f /var/crash/virtualbox-dkms*.crash 2>/dev/null || true
+    log_info "Instalando linux-headers para DKMS..."
+    if ! all_packages_installed linux-headers-"$(uname -r)" 2>/dev/null; then
+        sudo apt-get install -y linux-headers-"$(uname -r)" 2>/dev/null \
+            || sudo apt-get install -y linux-headers-generic 2>/dev/null || true
+    fi
+    if ! apt_install virtualbox virtualbox-dkms; then
+        sudo dpkg --configure -a 2>/dev/null || true
+        log_warn "VirtualBox no se pudo instalar (p. ej. DKMS o kernel). Puedes instalarlo manualmente mas tarde con: sudo apt install virtualbox virtualbox-dkms"
+        return 0
+    fi
 }
 
 install_docker() {
@@ -97,13 +103,13 @@ install_grub_customizer() {
 
 install_cloud_tools() {
     log_subsection "Herramientas Cloud"
-    apt_install azure-cli
-    apt_install google-cloud-cli
+    apt_install_optional azure-cli
+    apt_install_optional google-cloud-cli
 }
 
 install_remote_tools() {
     log_subsection "Herramientas remotas"
-    apt_install anydesk
+    apt_install_optional anydesk
 }
 
 install_fonts() {
@@ -148,6 +154,11 @@ install_all_apt_packages() {
         log_info "  - Plugins VPN"
         return 0
     fi
+    # Ensure crash file is gone before any apt run (e.g. when running only --section apt)
+    sudo rm -f /var/crash/virtualbox-dkms*.crash 2>/dev/null || true
+    # Refresh indices so packages from fixed repos are available
+    log_info "Actualizando indices de paquetes (apt-get update)..."
+    sudo apt-get update -qq 2>/dev/null || true
 
     install_core_utilities
     install_development_tools

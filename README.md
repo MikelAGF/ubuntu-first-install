@@ -38,6 +38,7 @@ cd ubuntu-first-install
 | `appimages` | LM Studio |
 | `system-monitor` | SystemMonitor.sh (dashboard tmux) + .desktop file |
 | `gnome` | Extensiones GNOME (Caffeine, Dash to Dock, Vitals, App Menu is Back) |
+| `gnome-settings` | Restaurar Settings GNOME (dconf: keybindings, tema, teclado, etc.) |
 | `grub` | Tema GRUB Tela (2560x1440) + GRUB Customizer |
 | `post-config` | Grupo docker, servicios, Git LFS |
 
@@ -62,26 +63,48 @@ LM Studio
 ### GRUB
 Tema Tela descargado de [vinceliuice/grub2-themes](https://github.com/vinceliuice/grub2-themes), resolución 2560x1440, timeout 20s
 
+## Exportar y restaurar tu configuración GNOME
+
+Puedes guardar **toda** la configuración de Settings (keybindings, teclado, tema claro/oscuro, etc.) y que se aplique en una instalación nueva:
+
+1. **En tu Ubuntu actual** (con todo ya configurado como quieres):
+   ```bash
+   ./export-my-settings.sh
+   git add config/dconf-gnome.ini
+   git commit -m "Add dconf backup (GNOME settings)"
+   ```
+2. **En la instalación nueva**, al ejecutar `./install.sh` se restaurará automáticamente si existe `config/dconf-gnome.ini`. O solo esa parte:
+   ```bash
+   ./install.sh --section gnome-settings
+   ```
+
+El backup usa **dconf** (donde GNOME guarda keybindings, apariencia, teclado, extensiones, etc.). Ver `config/README.md` para más detalle.
+
 ## Estructura
 
 ```
-├── install.sh           # Script principal
+├── install.sh             # Script principal
+├── export-my-settings.sh  # Exportar dconf en tu Ubuntu actual → config/dconf-gnome.ini
+├── config/
+│   ├── README.md          # Instrucciones del backup dconf
+│   └── dconf-gnome.ini    # (lo creas con export-my-settings.sh)
 ├── lib/
-│   ├── utils.sh         # Logging, error handling, wrappers
-│   ├── repos.sh         # Repositorios y PPAs
-│   ├── apt-packages.sh  # Paquetes APT
-│   ├── snap-packages.sh # Snaps
-│   ├── flatpak-setup.sh # Flatpak
+│   ├── utils.sh
+│   ├── repos.sh
+│   ├── apt-packages.sh
+│   ├── snap-packages.sh
+│   ├── flatpak-setup.sh
 │   ├── gnome-extensions.sh
+│   ├── dconf-settings.sh  # Restaurar dconf desde config/dconf-gnome.ini
 │   ├── grub-theme.sh
 │   ├── cursor-ide.sh
 │   ├── appimages.sh
 │   ├── dev-tools.sh
 │   ├── system-monitor.sh
 │   └── post-config.sh
-├── SystemMonitor.sh     # Dashboard tmux (htop, powertop, nvtop, sensors, iotop)
+├── SystemMonitor.sh
 ├── SystemMonitor.png
-└── cursor-icon.png      # Icono custom para Cursor IDE
+└── cursor-icon.png
 ```
 
 ## Notas

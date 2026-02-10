@@ -9,14 +9,28 @@ USER_EXTENSIONS=(
     "caffeine@patapon.info"
     "dash-to-dock@micxgx.gmail.com"
     "Vitals@CoreCoding.com"
+    "openweather-extension@penguin-teal.github.io"
+    "soft-brightness-plus@joelkitching.com"
+    "status-area-horizontal-spacing@mathematical.coffee.gmail.com"
 )
 
 # Extensiones del sistema (solo habilitar, ya vienen con Ubuntu)
 SYSTEM_EXTENSIONS=(
+    "apps-menu@gnome-shell-extensions.gcampax.github.com"
+    "auto-move-windows@gnome-shell-extensions.gcampax.github.com"
     "ding@rastersoft.com"
+    "drive-menu@gnome-shell-extensions.gcampax.github.com"
+    "launch-new-instance@gnome-shell-extensions.gcampax.github.com"
+    "light-style@gnome-shell-extensions.gcampax.github.com"
+    "native-window-placement@gnome-shell-extensions.gcampax.github.com"
+    "places-menu@gnome-shell-extensions.gcampax.github.com"
+    "screenshot-window-sizer@gnome-shell-extensions.gcampax.github.com"
+    "system-monitor@gnome-shell-extensions.gcampax.github.com"
+    "tiling-assistant@ubuntu.com"
     "ubuntu-appindicators@ubuntu.com"
     "ubuntu-dock@ubuntu.com"
-    "tiling-assistant@ubuntu.com"
+    "user-theme@gnome-shell-extensions.gcampax.github.com"
+    "window-list@gnome-shell-extensions.gcampax.github.com"
 )
 
 install_gext() {
@@ -43,19 +57,57 @@ install_gext() {
 
 install_user_extensions() {
     log_subsection "Instalando extensiones de usuario"
+    export PATH="$HOME/.local/bin:$PATH"
     for ext in "${USER_EXTENSIONS[@]}"; do
         log_info "Instalando extension: $ext"
         if [[ -d "$HOME/.local/share/gnome-shell/extensions/$ext" ]]; then
             log_info "  $ext ya esta instalada"
         else
-            gext install "$ext" 2>&1 || log_warn "No se pudo instalar $ext"
+            if ! gext install "$ext" 2>&1; then
+                sleep 2
+                gext install "$ext" 2>&1 || log_warn "No se pudo instalar $ext"
+            fi
         fi
     done
 }
 
+# Extension present on disk (user or system dir).
+extension_on_disk() {
+    local ext="$1"
+    [[ -d "$HOME/.local/share/gnome-shell/extensions/$ext" ]] && return 0
+    [[ -d "/usr/share/gnome-shell/extensions/$ext" ]] && return 0
+    return 1
+}
+
+# Extension is visible to the running GNOME Shell (so we can enable it).
+extension_visible_to_shell() {
+    local ext="$1"
+    gnome-extensions list 2>/dev/null | grep -qx "$ext" 2>/dev/null && return 0
+    return 1
+}
+
+# Use session bus and DISPLAY so gnome-extensions talks to the running GNOME session.
+ensure_gnome_session_env() {
+    [[ -z "${DISPLAY:-}" ]] && export DISPLAY=:0
+    if [[ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]]; then
+        local bus="/run/user/$(id -u)/bus"
+        [[ -S "$bus" ]] && export DBUS_SESSION_BUS_ADDRESS="unix:path=$bus"
+    fi
+}
+
 enable_user_extensions() {
     log_subsection "Habilitando extensiones de usuario"
+    ensure_gnome_session_env
+    export PATH="$HOME/.local/bin:$PATH"
     for ext in "${USER_EXTENSIONS[@]}"; do
+        if ! extension_on_disk "$ext"; then
+            log_warn "Extension no instalada, omitiendo: $ext"
+            continue
+        fi
+        if ! extension_visible_to_shell "$ext"; then
+            log_warn "Extension no visible para esta sesión GNOME (cierra sesión y vuelve a entrar): $ext"
+            continue
+        fi
         log_info "Habilitando: $ext"
         gnome-extensions enable "$ext" 2>&1 || log_warn "No se pudo habilitar $ext"
     done
@@ -63,7 +115,15 @@ enable_user_extensions() {
 
 enable_system_extensions() {
     log_subsection "Habilitando extensiones del sistema"
+    ensure_gnome_session_env
     for ext in "${SYSTEM_EXTENSIONS[@]}"; do
+        if ! extension_on_disk "$ext"; then
+            continue
+        fi
+        if ! extension_visible_to_shell "$ext"; then
+            log_warn "Extension no visible para esta sesión: $ext"
+            continue
+        fi
         log_info "Habilitando: $ext"
         gnome-extensions enable "$ext" 2>&1 || log_warn "No se pudo habilitar $ext"
     done

@@ -90,6 +90,15 @@ check_internet() {
 # -----------------------------------------------------------------------------
 # Wrappers de instalacion
 # -----------------------------------------------------------------------------
+# Returns 0 if all given packages are installed (ii).
+all_packages_installed() {
+    local p
+    for p in "$@"; do
+        dpkg -l "$p" 2>/dev/null | grep -q "^ii " || return 1
+    done
+    return 0
+}
+
 apt_install() {
     local packages=("$@")
     log_info "Instalando via apt: ${packages[*]}"
@@ -97,12 +106,55 @@ apt_install() {
         log_info "[DRY-RUN] sudo apt-get install -y ${packages[*]}"
         return 0
     fi
+    # Avoid virtualbox-dkms postinst failing with "Cannot create report: File exists"
+    sudo rm -f /var/crash/virtualbox-dkms*.crash 2>/dev/null || true
+    if all_packages_installed "${packages[@]}"; then
+        log_info "Ya instalados: ${packages[*]}"
+        return 0
+    fi
     if sudo apt-get install -y "${packages[@]}" 2>&1; then
         return 0
-    else
-        log_error "Fallo al instalar: ${packages[*]}"
-        return 1
     fi
+    sudo dpkg --configure -a 2>/dev/null || true
+    if all_packages_installed "${packages[@]}"; then
+        log_info "Paquetes ya instalados (dpkg recuperado): ${packages[*]}"
+        return 0
+    fi
+    log_error "Fallo al instalar: ${packages[*]}"
+    return 1
+}
+
+# Same as apt_install but on failure logs warning and returns 0 (section does not fail).
+apt_install_optional() {
+    local packages=("$@")
+    if apt_install "${packages[@]}"; then
+        return 0
+    fi
+    log_warn "No se pudo instalar (opcional): ${packages[*]}"
+    return 0
+}
+
+# Try libfuse2 (required for AppImages/Cursor). Prefer libfuse2t64 on newer Ubuntu.
+ensure_libfuse2() {
+    for pkg in libfuse2t64 libfuse2-2 libfuse2; do
+        if is_installed "$pkg" 2>/dev/null; then
+            log_info "libfuse2 ya instalado ($pkg)"
+            return 0
+        fi
+    done
+    sudo apt-get update -qq 2>/dev/null || true
+    for pkg in libfuse2t64 libfuse2-2 libfuse2; do
+        if sudo apt-get install -y "$pkg" 2>/dev/null; then
+            return 0
+        fi
+        sudo dpkg --configure -a 2>/dev/null || true
+        if is_installed "$pkg" 2>/dev/null; then
+            log_info "libfuse2 instalado ($pkg)"
+            return 0
+        fi
+    done
+    log_warn "No se pudo instalar libfuse2 (ni libfuse2t64 ni libfuse2-2). AppImages/Cursor pueden necesitarlo."
+    return 1
 }
 
 snap_install() {
@@ -206,7 +258,7 @@ print_summary() {
 
     echo -e "${BOLD}Notas importantes:${NC}"
     echo "  - Necesitas cerrar sesion y volver a entrar para que los cambios de grupo surtan efecto (docker)"
-    echo "  - Las extensiones GNOME pueden necesitar reiniciar la sesion (Alt+F2, 'r', Enter en X11)"
+    echo "  - Las extensiones GNOME pueden necesitar reiniciar la sesion (Alt+F2, r, Enter en X11)"
     echo "  - Es recomendable reiniciar el sistema para aplicar todos los cambios"
     echo ""
 

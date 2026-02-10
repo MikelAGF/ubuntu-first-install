@@ -22,7 +22,7 @@ setup_lm_studio() {
     log_subsection "Instalando LM Studio"
 
     # Dependencia para AppImages
-    apt_install libfuse2t64
+    ensure_libfuse2 || true
 
     ensure_dir "$install_dir"
 
