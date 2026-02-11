@@ -1,8 +1,8 @@
 .vscode
 .claude
 
-# Perfil de Cursor (contiene claves API sensibles)
-cursor/MikelAGF.code-profile
+# Backup del perfil de Cursor
+cursor/MikelAGF.code-profile.backup
 
 # Logs de instalación
 .cache/
