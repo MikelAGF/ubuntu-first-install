@@ -33,14 +33,15 @@ cd ubuntu-first-install
 | `apt` | Paquetes APT (Chrome, LibreOffice, Docker, VLC, OBS, Sublime, etc.) |
 | `snaps` | KeePassXC, Discord, Spotify |
 | `flatpak` | Flatpak + Flathub remote |
-| `dev-tools` | Node.js via `n`, npm globals (typescript, ts-node, turbo), Python3 |
-| `cursor` | Cursor IDE (.deb) con icono custom |
+| `dev-tools` | Node.js via `n`, npm globals (typescript, ts-node, turbo), Python3, **pyenv**, **GitHub CLI** |
+| `cursor` | Cursor IDE (.deb) con icono custom + **perfil automático** |
 | `appimages` | LM Studio |
 | `system-monitor` | SystemMonitor.sh (dashboard tmux) + .desktop file |
-| `gnome` | Extensiones GNOME (Caffeine, Dash to Dock, Vitals, App Menu is Back) |
+| `gnome` | Extensiones GNOME (**Keep Awake**, Dash to Dock, Vitals, App Menu is Back) |
 | `gnome-settings` | Restaurar Settings GNOME (dconf: keybindings, tema, teclado, etc.) |
 | `grub` | Tema GRUB Tela (2560x1440) + GRUB Customizer |
-| `post-config` | Grupo docker, servicios, Git LFS |
+| `system-optimization` | **Timeshift** (snapshots), **TRIM SSD**, **swappiness**, **zswap** |
+| `post-config` | Grupo docker, servicios, Git LFS, **cleanup**, **verificación** |
 
 ## Qué instala
 
@@ -57,8 +58,9 @@ Cursor IDE (con icono custom sobreescrito)
 LM Studio
 
 ### Extensiones GNOME
-- **Instala**: App Menu is Back, Caffeine, Dash to Dock, Vitals
-- **Habilita**: Desktop Icons NG, Ubuntu AppIndicators, Ubuntu Dock, Tiling Assistant
+- **Instala**: App Menu is Back, **Keep Awake** (reemplaza Caffeine), Dash to Dock, Vitals, OpenWeather, Soft Brightness Plus, Status Area Spacing
+- **Habilita**: Apps Menu, Desktop Icons NG (DING), Places Menu, Tiling Assistant, Ubuntu AppIndicators, User Theme, Window List
+- **Desactiva**: Ubuntu Dock (usa Dash to Dock en su lugar)
 
 ### GRUB
 Tema Tela descargado de [vinceliuice/grub2-themes](https://github.com/vinceliuice/grub2-themes), resolución 2560x1440, timeout 20s
@@ -107,10 +109,43 @@ El backup usa **dconf** (donde GNOME guarda keybindings, apariencia, teclado, ex
 └── cursor-icon.png
 ```
 
+## Optimizaciones del sistema
+
+### Timeshift (Snapshots)
+Instala Timeshift para crear puntos de restauración del sistema:
+```bash
+./install.sh system-optimization
+# Configura después con: sudo timeshift-gtk
+```
+
+### SSD Optimization
+- **TRIM automático**: Habilita `fstrim.timer` (ejecución semanal)
+- **Verificación de noatime**: Informa si falta en `/etc/fstab`
+
+### Swap Optimization
+- **swappiness=10**: Reduce escrituras en swap (mejor para SSD)
+- **zswap**: Compresión de swap en RAM antes de escribir a disco (efectivo tras reinicio)
+
+## Sistema de logging
+
+Todos los logs se guardan automáticamente en:
+```
+~/.cache/ubuntu-install-logs/install-YYYYMMDD-HHMMSS.log
+```
+
+Útil para debugging si algo falla.
+
+## Post-config improvements
+
+La sección `post-config` ahora incluye:
+- **Cleanup**: `apt autoremove`, `apt clean`, limpieza de snaps antiguos
+- **Verificación**: Comprueba que servicios críticos (docker, comandos) funcionan
+
 ## Notas
 
 - El script es **idempotente**: comprueba si cada cosa ya está instalada antes de actuar
 - Los fallos en una sección **no paran** el resto de la instalación
 - Al final muestra un **resumen** con lo que funcionó y lo que falló
+- **Los logs se guardan** automáticamente en `~/.cache/ubuntu-install-logs/`
 - Tras la ejecución hay que **cerrar sesión** para que los cambios de grupo (docker) y las extensiones GNOME se apliquen
-- Se recomienda **reiniciar** tras la ejecución completa
+- Se recomienda **reiniciar** tras la ejecución completa (especialmente para activar zswap)

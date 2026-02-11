@@ -72,4 +72,20 @@ DESKTOP
 
     update-desktop-database "$HOME/.local/share/applications/" 2>/dev/null || true
     log_info "Cursor IDE instalado con icono custom"
+
+    # Importar y activar perfil de Cursor
+    log_subsection "Configurando perfil de Cursor"
+    local profile_src="${script_dir}/cursor/MikelAGF.code-profile"
+
+    if [[ -f "$profile_src" ]]; then
+        log_info "Importando perfil MikelAGF..."
+        cursor --profile import "$profile_src" || log_warn "No se pudo importar el perfil (puede que Cursor necesite ejecutarse primero)"
+
+        log_info "Activando perfil MikelAGF..."
+        cursor --profile MikelAGF || log_warn "No se pudo activar el perfil"
+
+        log_info "Perfil de Cursor configurado"
+    else
+        log_warn "No se encontro el perfil en ${profile_src}"
+    fi
 }

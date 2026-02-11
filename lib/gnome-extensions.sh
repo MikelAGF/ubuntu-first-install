@@ -6,9 +6,9 @@
 # Extensiones de usuario (descargar e instalar desde extensions.gnome.org)
 USER_EXTENSIONS=(
     "appmenu-is-back@fthx"
-    "caffeine@patapon.info"
-    "dash-to-dock@micxgx.gmail.com"
-    "Vitals@CoreCoding.com"
+    "keep-awake@jepfa.de"  # Alternativa moderna a Caffeine, compatible con GNOME 46
+    "dash-to-dock@micxgx.gmail.com"  # Mas configurable que ubuntu-dock (que esta desactivado)
+    "Vitals@CoreCoding.com"  # Mejor que system-monitor
     "openweather-extension@penguin-teal.github.io"
     "soft-brightness-plus@joelkitching.com"
     "status-area-horizontal-spacing@mathematical.coffee.gmail.com"
@@ -17,18 +17,11 @@ USER_EXTENSIONS=(
 # Extensiones del sistema (solo habilitar, ya vienen con Ubuntu)
 SYSTEM_EXTENSIONS=(
     "apps-menu@gnome-shell-extensions.gcampax.github.com"
-    "auto-move-windows@gnome-shell-extensions.gcampax.github.com"
     "ding@rastersoft.com"
-    "drive-menu@gnome-shell-extensions.gcampax.github.com"
-    "launch-new-instance@gnome-shell-extensions.gcampax.github.com"
-    "light-style@gnome-shell-extensions.gcampax.github.com"
-    "native-window-placement@gnome-shell-extensions.gcampax.github.com"
     "places-menu@gnome-shell-extensions.gcampax.github.com"
-    "screenshot-window-sizer@gnome-shell-extensions.gcampax.github.com"
-    "system-monitor@gnome-shell-extensions.gcampax.github.com"
     "tiling-assistant@ubuntu.com"
     "ubuntu-appindicators@ubuntu.com"
-    "ubuntu-dock@ubuntu.com"
+    # "ubuntu-dock@ubuntu.com"  # Desactivado - usamos dash-to-dock en su lugar
     "user-theme@gnome-shell-extensions.gcampax.github.com"
     "window-list@gnome-shell-extensions.gcampax.github.com"
 )

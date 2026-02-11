@@ -20,6 +20,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DRY_RUN="${DRY_RUN:-false}"
 SELECTED_SECTIONS=()
 
+# Sistema de logging
+LOG_DIR="$HOME/.cache/ubuntu-install-logs"
+mkdir -p "$LOG_DIR"
+LOG_FILE="$LOG_DIR/install-$(date +%Y%m%d-%H%M%S).log"
+
+# Redirigir todo output a log y a pantalla
+exec > >(tee -a "$LOG_FILE")
+exec 2>&1
+
 # -----------------------------------------------------------------------------
 # Cargar modulos
 # -----------------------------------------------------------------------------
@@ -35,6 +44,7 @@ source "${SCRIPT_DIR}/lib/system-monitor.sh"
 source "${SCRIPT_DIR}/lib/gnome-extensions.sh"
 source "${SCRIPT_DIR}/lib/grub-theme.sh"
 source "${SCRIPT_DIR}/lib/dconf-settings.sh"
+source "${SCRIPT_DIR}/lib/system-optimization.sh"
 source "${SCRIPT_DIR}/lib/post-config.sh"
 
 # -----------------------------------------------------------------------------
@@ -53,6 +63,7 @@ SECTIONS=(
     [gnome]="setup_all_gnome_extensions"
     [gnome-settings]="run_dconf_restore"
     [grub]="setup_grub"
+    [system-optimization]="setup_system_optimization"
     [post-config]="run_post_config"
 )
 
@@ -69,6 +80,7 @@ SECTION_ORDER=(
     gnome
     gnome-settings
     grub
+    system-optimization
     post-config
 )
 
@@ -77,14 +89,15 @@ SECTION_DESCRIPTIONS=(
     "apt:Instalar paquetes APT (Chrome, LibreOffice, Docker, VLC, etc.)"
     "snaps:Instalar snaps (KeePassXC, Discord, Spotify)"
     "flatpak:Configurar Flatpak y Flathub"
-    "dev-tools:Node.js (via n), npm globals, Python3"
-    "cursor:Cursor IDE (.deb) con icono custom"
+    "dev-tools:Node.js (via n), npm globals, Python3, pyenv, GitHub CLI"
+    "cursor:Cursor IDE (.deb) con icono custom + perfil"
     "appimages:LM Studio AppImage"
     "system-monitor:SystemMonitor.sh + .desktop file"
-    "gnome:Extensiones GNOME (Caffeine, Dash to Dock, Vitals, etc.)"
+    "gnome:Extensiones GNOME (Keep Awake, Dash to Dock, Vitals, etc.)"
     "gnome-settings:Restaurar Settings GNOME (dconf: keybindings, tema, teclado)"
     "grub:Tema GRUB Tela + configuracion"
-    "post-config:Grupos (docker), servicios, Git LFS"
+    "system-optimization:Timeshift, TRIM SSD, swappiness, zswap"
+    "post-config:Grupos (docker), servicios, Git LFS, cleanup, verificacion"
 )
 
 # -----------------------------------------------------------------------------
@@ -237,6 +250,8 @@ main() {
     echo -e "\033[1m========================================\033[0m"
     echo -e "\033[1m  Ubuntu 24.04 Fresh Install Script\033[0m"
     echo -e "\033[1m========================================\033[0m"
+    echo ""
+    echo -e "\033[0;36mLog file: $LOG_FILE\033[0m"
     echo ""
 
     if [[ "$DRY_RUN" == "true" ]]; then
