@@ -1,8 +1,11 @@
 .vscode
 .claude
+.cursor
 
-# Backup del perfil de Cursor
-cursor/MikelAGF.code-profile.backup
+# Perfil de Cursor (puede contener claves; no subir)
+cursor/*.code-profile
+cursor/*.code-profile.bak
+cursor/*.code-profile.backup
 
 # Logs de instalación
 .cache/

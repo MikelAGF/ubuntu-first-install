@@ -55,33 +55,35 @@ keepassxc, discord, spotify
 ### .deb
 Cursor IDE (con icono custom sobreescrito)
 
+### Extensiones del editor (VSCode / Cursor)
+Para las extensiones del editor: instala **VSCode**, haz la importación sincronizando en VSCode desde **GitHub** y en **Cursor** sincroniza/importa desde VSCode.
+
 ### AppImage
 LM Studio
 
 ### Extensiones GNOME
 - **Instala**: App Menu is Back, **Caffeine**, Dash to Dock, Vitals, OpenWeather, Soft Brightness Plus, Status Area Spacing
-- **Habilita**: Apps Menu, Desktop Icons NG (DING), Places Menu, Tiling Assistant, Ubuntu AppIndicators, User Theme, Window List
+- **Habilita**: Apps Menu, Desktop Icons NG (DING), Places Menu, Tiling Assistant, Ubuntu AppIndicators, User Theme
 - **Desactiva**: Ubuntu Dock (usa Dash to Dock en su lugar)
 
 ### GRUB
 Tema Tela descargado de [vinceliuice/grub2-themes](https://github.com/vinceliuice/grub2-themes), resolución 2560x1440, timeout 20s
 
-## Exportar y restaurar tu configuración GNOME
+## Exportar y restaurar tu configuración GNOME (y estado de extensiones)
 
-Puedes guardar **toda** la configuración de Settings (keybindings, teclado, tema claro/oscuro, etc.) y que se aplique en una instalación nueva:
+Para que en otra instalación (o en este PC tras reinstalar) queden **las mismas extensiones activadas/desactivadas y sus configuraciones** (Caffeine, Dash to Dock, etc.), así como tema, keybindings y teclado:
 
-1. **En tu Ubuntu actual** (con todo ya configurado como quieres):
+1. **En este PC** (con las extensiones y la configuración ya como quieres):
    ```bash
    ./export-my-settings.sh
    git add config/dconf-gnome.ini
-   git commit -m "Add dconf backup (GNOME settings)"
+   git commit -m "Update dconf backup (GNOME + extensiones)"
    ```
-2. **En la instalación nueva**, al ejecutar `./install.sh` se restaurará automáticamente si existe `config/dconf-gnome.ini`. O solo esa parte:
-   ```bash
-   ./install.sh --section gnome-settings
-   ```
+2. **En la instalación nueva** (o al ejecutar solo extensiones):
+   - `./install.sh --section gnome` instala las extensiones y **aplica el estado guardado** (activadas/desactivadas y configs) si existe `config/dconf-gnome.ini`.
+   - `./install.sh --section gnome-settings` restaura todo el dconf (tema, teclado, keybindings, etc.).
 
-El backup usa **dconf** (donde GNOME guarda keybindings, apariencia, teclado, extensiones, etc.). Ver `config/README.md` para más detalle.
+El backup incluye **extensiones** (lista enabled/disabled y configs en `[shell/extensions/...]`) y el resto de **dconf** bajo `/org/gnome/`. Ver `config/README.md` para más detalle.
 
 ## Estructura
 

@@ -23,7 +23,7 @@ SYSTEM_EXTENSIONS=(
     "ubuntu-appindicators@ubuntu.com"
     # "ubuntu-dock@ubuntu.com"  # Desactivado - usamos dash-to-dock en su lugar
     "user-theme@gnome-shell-extensions.gcampax.github.com"
-    "window-list@gnome-shell-extensions.gcampax.github.com"
+    # "window-list@gnome-shell-extensions.gcampax.github.com"  # No habilitar por defecto
 )
 
 install_gext() {
@@ -64,6 +64,52 @@ install_user_extensions() {
     done
 }
 
+# Compile GSettings schemas for extensions that have schemas/ (e.g. Caffeine).
+# Fixes: "Failed to open file .../gschemas.compiled": No such file or directory
+compile_extension_schemas() {
+    log_subsection "Compilando esquemas de extensiones (GSettings)"
+    if ! command_exists glib-compile-schemas 2>/dev/null; then
+        apt_install_optional libglib2.0-bin
+    fi
+    if ! command_exists glib-compile-schemas 2>/dev/null; then
+        log_warn "glib-compile-schemas no disponible; algunas extensiones (ej. Caffeine) pueden fallar al abrir preferencias"
+        return 0
+    fi
+    local ext_dir="$HOME/.local/share/gnome-shell/extensions"
+    for ext in "${USER_EXTENSIONS[@]}"; do
+        local schemas_dir="${ext_dir}/${ext}/schemas"
+        if [[ -d "$schemas_dir" ]] && compgen -G "${schemas_dir}/*.gschema.xml" >/dev/null 2>&1; then
+            log_info "Compilando esquemas: $ext"
+            glib-compile-schemas "$schemas_dir" 2>/dev/null || log_warn "No se pudo compilar esquemas de $ext"
+        fi
+    done
+}
+
+# Set Caffeine default: active (on) with timer "Infinite".
+# Index 3 = Infinite in the quick settings duration list (0=15m, 1=30m, 2=1h, 3=Infinite).
+# GSETTINGS_SCHEMA_DIR is needed so gsettings finds the extension schema in ~/.local.
+set_caffeine_defaults() {
+    local ext_dir="$HOME/.local/share/gnome-shell/extensions"
+    local ext="caffeine@patapon.info"
+    local schemas_dir="${ext_dir}/${ext}/schemas"
+    if [[ ! -d "$schemas_dir" ]]; then
+        return 0
+    fi
+    log_subsection "Configurando Caffeine (activado + Infinite)"
+    if command_exists gsettings 2>/dev/null; then
+        export GSETTINGS_SCHEMA_DIR="$schemas_dir"
+        if gsettings set org.gnome.shell.extensions.caffeine user-enabled true 2>/dev/null && \
+           gsettings set org.gnome.shell.extensions.caffeine duration-timer 3 2>/dev/null; then
+            log_info "Caffeine: activado por defecto, temporizador Infinite"
+        else
+            log_warn "No se pudo aplicar la configuracion por defecto de Caffeine (puede requerir reiniciar GNOME)"
+        fi
+        unset GSETTINGS_SCHEMA_DIR
+    else
+        log_warn "gsettings no disponible; Caffeine no se configurara por defecto"
+    fi
+}
+
 # Extension present on disk (user or system dir).
 extension_on_disk() {
     local ext="$1"
@@ -77,6 +123,26 @@ extension_visible_to_shell() {
     local ext="$1"
     gnome-extensions list 2>/dev/null | grep -qx "$ext" 2>/dev/null && return 0
     return 1
+}
+
+# Apply saved extension state (enabled/disabled) and configs from dconf backup.
+# Run after installing and enabling extensions so backup overwrites with desired state.
+apply_extension_state_from_backup() {
+    local script_dir
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+    local backup_file="${script_dir}/config/dconf-gnome.ini"
+    if [[ ! -f "$backup_file" ]]; then
+        return 0
+    fi
+    if ! command -v dconf &>/dev/null; then
+        return 0
+    fi
+    log_subsection "Aplicando estado guardado de extensiones (activadas/desactivadas y configuraciones)"
+    if dconf load /org/gnome/ < "$backup_file" 2>/dev/null; then
+        log_info "Estado de extensiones aplicado desde config/dconf-gnome.ini"
+    else
+        log_warn "Error al aplicar backup dconf (extensiones); revisa config/dconf-gnome.ini"
+    fi
 }
 
 # Use session bus and DISPLAY so gnome-extensions talks to the running GNOME session.
@@ -147,8 +213,11 @@ setup_all_gnome_extensions() {
 
     install_gext
     install_user_extensions
+    compile_extension_schemas
+    set_caffeine_defaults
     enable_user_extensions
     enable_system_extensions
+    apply_extension_state_from_backup
 
     # If extensions are on disk but not visible, the shell has not rescanned yet.
     # On X11 we can restart the shell so it rescans; then retry enable.

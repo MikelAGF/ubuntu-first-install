@@ -28,8 +28,8 @@ restore_dconf_settings() {
     fi
 
     log_subsection "Restaurando configuracion GNOME (dconf)"
-    # File was created with "dconf dump /org/gnome/" so it contains [org/gnome/...]; load at root
-    if dconf load / < "$backup_file" 2>/dev/null; then
+    # File was created with "dconf dump /org/gnome/" so sections are relative to /org/gnome/
+    if dconf load /org/gnome/ < "$backup_file" 2>/dev/null; then
         log_info "Configuracion dconf restaurada desde ${DCONF_BACKUP_REL}"
     else
         log_warn "Error al cargar dconf (puede haber claves incompatibles). Revisa ${DCONF_BACKUP_REL}."
