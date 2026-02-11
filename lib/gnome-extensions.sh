@@ -6,7 +6,7 @@
 # Extensiones de usuario (descargar e instalar desde extensions.gnome.org)
 USER_EXTENSIONS=(
     "appmenu-is-back@fthx"
-    "keep-awake@jepfa.de"  # Alternativa moderna a Caffeine, compatible con GNOME 46
+    "caffeine@patapon.info"  # Evita que la pantalla se apague / el sistema entre en suspensión
     "dash-to-dock@micxgx.gmail.com"  # Mas configurable que ubuntu-dock (que esta desactivado)
     "Vitals@CoreCoding.com"  # Mejor que system-monitor
     "openweather-extension@penguin-teal.github.io"

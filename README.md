@@ -37,10 +37,11 @@ cd ubuntu-first-install
 | `cursor` | Cursor IDE (.deb) con icono custom + **perfil automático** |
 | `appimages` | LM Studio |
 | `system-monitor` | SystemMonitor.sh (dashboard tmux) + .desktop file |
-| `gnome` | Extensiones GNOME (**Keep Awake**, Dash to Dock, Vitals, App Menu is Back) |
+| `gnome` | Extensiones GNOME (**Caffeine**, Dash to Dock, Vitals, App Menu is Back) |
 | `gnome-settings` | Restaurar Settings GNOME (dconf: keybindings, tema, teclado, etc.) |
 | `grub` | Tema GRUB Tela (2560x1440) + GRUB Customizer |
 | `system-optimization` | **Timeshift** (snapshots), **TRIM SSD**, **swappiness**, **zswap** |
+| `datadisk` | Montaje automático DataDisk NTFS en fstab (remove_hiberfile) |
 | `post-config` | Grupo docker, servicios, Git LFS, **cleanup**, **verificación** |
 
 ## Qué instala
@@ -58,7 +59,7 @@ Cursor IDE (con icono custom sobreescrito)
 LM Studio
 
 ### Extensiones GNOME
-- **Instala**: App Menu is Back, **Keep Awake** (reemplaza Caffeine), Dash to Dock, Vitals, OpenWeather, Soft Brightness Plus, Status Area Spacing
+- **Instala**: App Menu is Back, **Caffeine**, Dash to Dock, Vitals, OpenWeather, Soft Brightness Plus, Status Area Spacing
 - **Habilita**: Apps Menu, Desktop Icons NG (DING), Places Menu, Tiling Assistant, Ubuntu AppIndicators, User Theme, Window List
 - **Desactiva**: Ubuntu Dock (usa Dash to Dock en su lugar)
 
@@ -140,6 +141,54 @@ Todos los logs se guardan automáticamente en:
 La sección `post-config` ahora incluye:
 - **Cleanup**: `apt autoremove`, `apt clean`, limpieza de snaps antiguos
 - **Verificación**: Comprueba que servicios críticos (docker, comandos) funcionan
+
+## Automatizar el montaje del DataDisk (NTFS)
+
+Si usas un disco NTFS (p. ej. `/dev/sda2`) montado en `/media/mikel/DataDisk` y Windows deja el disco en estado de hibernación, Ubuntu puede encargarse de limpiar y montar el disco al arrancar.
+
+**El script lo hace por ti**: al ejecutar `./install.sh` (o `./install.sh --section post-config`) se configura automáticamente el montaje en `/etc/fstab` si el disco `/dev/sda2` existe. Para ejecutar solo esta parte: `./install.sh --section datadisk`. Puedes cambiar el dispositivo con `DATADISK_DEV=/dev/sdXY ./install.sh --section datadisk`.
+
+### 1. Opción recomendada: montaje automático con fstab
+
+1. **Obtén el UUID del disco**:
+   ```bash
+   lsblk -d -no UUID /dev/sda2
+   ```
+   Copia el código (ej. `A6C421CEC421A213`).
+
+2. **Edita el archivo de montajes**:
+   ```bash
+   sudo nano /etc/fstab
+   ```
+   Añade al final (sustituye `TU_UUID_AQUÍ` por el UUID que copiaste):
+   ```
+   UUID=TU_UUID_AQUÍ /media/mikel/DataDisk ntfs-3g defaults,rw,remove_hiberfile 0 0
+   ```
+   La opción `remove_hiberfile` hace que Ubuntu intente limpiar el bloqueo en cada arranque.
+
+3. **Guarda y sal**: `Ctrl+O`, Enter, `Ctrl+X`.
+
+### 2. Alias (acceso rápido manual)
+
+Si prefieres no tocar fstab y montar el disco solo cuando lo necesites:
+
+1. Abre la configuración de la terminal:
+   ```bash
+   nano ~/.bashrc
+   ```
+2. Ve al final y pega:
+   ```bash
+   alias montardisco='sudo ntfs-3g -o remove_hiberfile /dev/sda2 /media/mikel/DataDisk'
+   ```
+3. Guarda (`Ctrl+O`, Enter, `Ctrl+X`) y recarga:
+   ```bash
+   source ~/.bashrc
+   ```
+   A partir de entonces, el comando `montardisco` ejecutará el montaje.
+
+### Recomendación
+
+Prueba primero **Reiniciar** en Windows después de ejecutar `powercfg /h off`. Si el problema continúa, la opción de **fstab** (paso 1) es la más cómoda porque evitas el problema en cada arranque.
 
 ## Notas
 

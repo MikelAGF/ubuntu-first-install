@@ -92,6 +92,7 @@ verify_installation() {
 run_post_config() {
     if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Post-configuracion:"
+        log_info "  - Configurar montaje automatico DataDisk (fstab)"
         log_info "  - Anadir usuario al grupo docker"
         log_info "  - Habilitar servicio docker"
         log_info "  - Configurar Git LFS"
@@ -100,6 +101,7 @@ run_post_config() {
         return 0
     fi
 
+    setup_datadisk_fstab
     configure_docker_group
     enable_services
     configure_git_lfs

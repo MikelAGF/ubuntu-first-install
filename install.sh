@@ -45,6 +45,7 @@ source "${SCRIPT_DIR}/lib/gnome-extensions.sh"
 source "${SCRIPT_DIR}/lib/grub-theme.sh"
 source "${SCRIPT_DIR}/lib/dconf-settings.sh"
 source "${SCRIPT_DIR}/lib/system-optimization.sh"
+source "${SCRIPT_DIR}/lib/datadisk-mount.sh"
 source "${SCRIPT_DIR}/lib/post-config.sh"
 
 # -----------------------------------------------------------------------------
@@ -64,6 +65,7 @@ SECTIONS=(
     [gnome-settings]="run_dconf_restore"
     [grub]="setup_grub"
     [system-optimization]="setup_system_optimization"
+    [datadisk]="run_datadisk_mount"
     [post-config]="run_post_config"
 )
 
@@ -81,6 +83,7 @@ SECTION_ORDER=(
     gnome-settings
     grub
     system-optimization
+    datadisk
     post-config
 )
 
@@ -93,10 +96,11 @@ SECTION_DESCRIPTIONS=(
     "cursor:Cursor IDE (.deb) con icono custom + perfil"
     "appimages:LM Studio AppImage"
     "system-monitor:SystemMonitor.sh + .desktop file"
-    "gnome:Extensiones GNOME (Keep Awake, Dash to Dock, Vitals, etc.)"
+    "gnome:Extensiones GNOME (Caffeine, Dash to Dock, Vitals, etc.)"
     "gnome-settings:Restaurar Settings GNOME (dconf: keybindings, tema, teclado)"
     "grub:Tema GRUB Tela + configuracion"
     "system-optimization:Timeshift, TRIM SSD, swappiness, zswap"
+    "datadisk:Montaje automatico DataDisk NTFS en fstab (remove_hiberfile)"
     "post-config:Grupos (docker), servicios, Git LFS, cleanup, verificacion"
 )
 
