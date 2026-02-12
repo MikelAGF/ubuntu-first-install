@@ -40,7 +40,7 @@ cd ubuntu-first-install
 | `gnome` | Extensiones GNOME (**Caffeine**, Dash to Dock, Vitals, App Menu is Back) |
 | `gnome-settings` | Restaurar Settings GNOME (dconf: keybindings, tema, teclado, etc.) |
 | `grub` | Tema GRUB Tela (2560x1440) + GRUB Customizer |
-| `system-optimization` | **Timeshift** (snapshots), **TRIM SSD**, **swappiness**, **zswap** |
+| `system-optimization` | **Timeshift** (snapshots), **TRIM SSD**, **swappiness**, **zswap**, **fix Chromium crashes** |
 | `datadisk` | Montaje automático DataDisk NTFS en fstab (remove_hiberfile) |
 | `post-config` | Grupo docker, servicios, Git LFS, **cleanup**, **verificación** |
 
@@ -128,6 +128,16 @@ Instala Timeshift para crear puntos de restauración del sistema:
 ### Swap Optimization
 - **swappiness=10**: Reduce escrituras en swap (mejor para SSD)
 - **zswap**: Compresión de swap en RAM antes de escribir a disco (efectivo tras reinicio)
+
+### Fix para crashes de aplicaciones Chromium (Chrome, Cursor, VSCode, Discord)
+Ubuntu 24.04 introdujo restricciones de seguridad que impiden que aplicaciones basadas en Chromium/Electron creen "user namespaces" sin permiso explícito, causando crashes con error `FATAL:zygote_host_impl_linux.cc`.
+
+El script aplica automáticamente el fix permanente:
+- Crea `/etc/sysctl.d/60-chromium-fix.conf` con `kernel.unprivileged_userns_clone=1`
+- Si AppArmor también está restringiendo, aplica `kernel.apparmor_restrict_unprivileged_userns=0`
+- Se recomienda reiniciar tras aplicar estos cambios
+
+Después de este fix, Chrome, Cursor, VSCode, Discord, Slack y otras apps basadas en Chromium funcionarán sin necesidad de usar `--no-sandbox`.
 
 ## Sistema de logging
 

@@ -96,6 +96,50 @@ optimize_swap() {
     fi
 }
 
+fix_chromium_crashes() {
+    log_subsection "Fix para crashes de aplicaciones Chromium (Chrome, Cursor, VSCode, Discord)"
+
+    # Ubuntu 24.04 introdujo restricciones de seguridad que impiden que aplicaciones
+    # basadas en Chromium/Electron creen namespaces sin permiso explicito.
+    # Esto causa crashes con error FATAL:zygote_host_impl_linux.cc
+
+    local SYSCTL_CONF="/etc/sysctl.d/60-chromium-fix.conf"
+    local NEEDS_REBOOT=false
+
+    # Verificar si ya esta configurado
+    if [[ -f "$SYSCTL_CONF" ]] && grep -q "kernel.unprivileged_userns_clone=1" "$SYSCTL_CONF"; then
+        log_info "Fix de Chromium ya esta aplicado en $SYSCTL_CONF"
+    else
+        log_info "Aplicando fix para habilitar user namespaces..."
+        echo 'kernel.unprivileged_userns_clone=1' | sudo tee "$SYSCTL_CONF" > /dev/null
+        sudo sysctl -p "$SYSCTL_CONF" > /dev/null 2>&1 || true
+        log_info "Fix aplicado: kernel.unprivileged_userns_clone=1"
+        NEEDS_REBOOT=true
+    fi
+
+    # Verificar restricciones de AppArmor
+    local apparmor_restrict=$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns 2>/dev/null || echo "0")
+    if [[ "$apparmor_restrict" != "0" ]]; then
+        log_info "AppArmor esta restringiendo user namespaces, aplicando fix adicional..."
+        if grep -q "^kernel.apparmor_restrict_unprivileged_userns=0" /etc/sysctl.conf 2>/dev/null; then
+            log_info "Fix de AppArmor ya configurado en /etc/sysctl.conf"
+        else
+            echo "kernel.apparmor_restrict_unprivileged_userns=0" | sudo tee -a /etc/sysctl.conf > /dev/null
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 > /dev/null 2>&1 || true
+            log_info "Fix de AppArmor aplicado"
+            NEEDS_REBOOT=true
+        fi
+    else
+        log_info "AppArmor no esta restringiendo user namespaces"
+    fi
+
+    if [[ "$NEEDS_REBOOT" == "true" ]]; then
+        log_warn "Se recomienda reiniciar el sistema para aplicar completamente los cambios"
+    fi
+
+    log_info "Chrome, Cursor, VSCode, Discord y otras apps Chromium ya no deberian crashear"
+}
+
 # -----------------------------------------------------------------------------
 # Funcion principal
 # -----------------------------------------------------------------------------
@@ -106,12 +150,14 @@ setup_system_optimization() {
         log_info "  - Habilitar TRIM para SSD"
         log_info "  - Configurar swappiness=10"
         log_info "  - Habilitar zswap"
+        log_info "  - Fix para crashes de aplicaciones Chromium"
         return 0
     fi
 
     setup_timeshift
     optimize_ssd
     optimize_swap
+    fix_chromium_crashes
 
     log_info "Optimizaciones del sistema completadas"
 }

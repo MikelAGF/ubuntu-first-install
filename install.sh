@@ -99,7 +99,7 @@ SECTION_DESCRIPTIONS=(
     "gnome:Extensiones GNOME (Caffeine, Dash to Dock, Vitals, etc.)"
     "gnome-settings:Restaurar Settings GNOME (dconf: keybindings, tema, teclado)"
     "grub:Tema GRUB Tela + configuracion"
-    "system-optimization:Timeshift, TRIM SSD, swappiness, zswap"
+    "system-optimization:Timeshift, TRIM SSD, swappiness, zswap, fix Chromium crashes"
     "datadisk:Montaje automatico DataDisk NTFS en fstab (remove_hiberfile)"
     "post-config:Grupos (docker), servicios, Git LFS, cleanup, verificacion"
 )
